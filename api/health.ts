@@ -1,5 +1,5 @@
-import type { VercelReq, VercelRes } from "./_gemini";
+import { sendJson, type VercelReq, type VercelRes } from "./_gemini.js";
 
 export default function handler(_req: VercelReq, res: VercelRes) {
-  res.status(200).json({ ok: true, runtime: "vercel" });
+  sendJson(res, 200, { ok: true, runtime: "vercel" });
 }

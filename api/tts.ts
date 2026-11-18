@@ -1,28 +1,30 @@
+import process from "node:process";
 import {
   ALLOWED_TTS_VOICES,
   ensurePlayableWav,
   getGeminiClient,
-  parseJsonBody,
+  readJsonBody,
+  sendJson,
   type VercelReq,
   type VercelRes,
-} from "./_gemini";
+} from "./_gemini.js";
 
 export default async function handler(req: VercelReq, res: VercelRes) {
   if (req.method !== "POST") {
-    res.status(405).json({ error: "METHOD_NOT_ALLOWED", message: "Use POST." });
+    sendJson(res, 405, { error: "METHOD_NOT_ALLOWED", message: "Use POST." });
     return;
   }
 
   const ai = getGeminiClient();
   if (!ai) {
-    res.status(503).json({
+    sendJson(res, 503, {
       error: "TTS_NOT_CONFIGURED",
       message: "El servicio de voz HD no está configurado en este entorno.",
     });
     return;
   }
 
-  const body = parseJsonBody<{
+  const body = await readJsonBody<{
     text?: unknown;
     voiceName?: unknown;
     slow?: unknown;
@@ -30,11 +32,11 @@ export default async function handler(req: VercelReq, res: VercelRes) {
 
   const rawText = typeof body?.text === "string" ? body.text.trim() : "";
   if (!rawText) {
-    res.status(400).json({ error: "EMPTY_TEXT", message: "Texto vacío." });
+    sendJson(res, 400, { error: "EMPTY_TEXT", message: "Texto vacío." });
     return;
   }
   if (rawText.length > 400) {
-    res.status(400).json({
+    sendJson(res, 400, {
       error: "TEXT_TOO_LONG",
       message: "El texto para pronunciar excede el máximo de 400 caracteres.",
     });
@@ -76,7 +78,7 @@ export default async function handler(req: VercelReq, res: VercelRes) {
     const base64Audio = inlineData?.data;
 
     if (!base64Audio) {
-      res.status(502).json({
+      sendJson(res, 502, {
         error: "EMPTY_AUDIO",
         message: "No se pudo generar el audio.",
       });
@@ -84,14 +86,14 @@ export default async function handler(req: VercelReq, res: VercelRes) {
     }
 
     const playable = ensurePlayableWav(base64Audio, inlineData?.mimeType);
-    res.status(200).json({
+    sendJson(res, 200, {
       audioBase64: playable.audioBase64,
       mimeType: playable.mimeType,
       voiceName,
     });
   } catch (error) {
     console.error("Vercel TTS error:", error);
-    res.status(502).json({
+    sendJson(res, 502, {
       error: "TTS_UPSTREAM_ERROR",
       message: "No se pudo obtener el audio HD en este momento.",
     });

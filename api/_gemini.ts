@@ -1,15 +1,20 @@
+import { Buffer } from "node:buffer";
+import process from "node:process";
+import type { IncomingMessage } from "node:http";
 import { GoogleGenAI } from "@google/genai";
 
-export interface VercelReq {
+export interface VercelReq extends Partial<IncomingMessage> {
   method?: string;
   body?: unknown;
   headers?: Record<string, string | string[] | undefined>;
 }
 
 export interface VercelRes {
-  status: (code: number) => VercelRes;
-  json: (data: unknown) => void;
+  statusCode?: number;
+  status?: (code: number) => VercelRes;
+  json?: (data: unknown) => void;
   setHeader?: (name: string, value: string) => void;
+  end?: (chunk?: string) => void;
 }
 
 export interface AssistantHistoryItem {
@@ -33,6 +38,23 @@ Reglas de estilo y seguridad:
 
 export const ALLOWED_TTS_VOICES = new Set(["Kore", "Zephyr", "Puck", "Charon"]);
 
+export function sendJson(
+  res: VercelRes,
+  statusCode: number,
+  payload: unknown
+): void {
+  if (typeof res.status === "function") {
+    const chained = res.status(statusCode);
+    if (chained && typeof chained.json === "function") {
+      chained.json(payload);
+      return;
+    }
+  }
+  res.statusCode = statusCode;
+  res.setHeader?.("Content-Type", "application/json; charset=utf-8");
+  res.end?.(JSON.stringify(payload));
+}
+
 export function isGeminiConfigured(): boolean {
   const key = process.env.GEMINI_API_KEY?.trim();
   return Boolean(
@@ -52,26 +74,45 @@ export function getGeminiClient(): GoogleGenAI | null {
   });
 }
 
-export function parseJsonBody<T = Record<string, unknown>>(req: VercelReq): T {
+export async function readJsonBody<T = Record<string, unknown>>(
+  req: VercelReq
+): Promise<T> {
   const raw = req.body;
-  if (!raw) return {} as T;
-  if (typeof raw === "string") {
+  if (raw !== undefined && raw !== null) {
+    if (typeof raw === "string") {
+      try {
+        return JSON.parse(raw) as T;
+      } catch {
+        return {} as T;
+      }
+    }
+    if (Buffer.isBuffer(raw)) {
+      try {
+        return JSON.parse(raw.toString("utf8")) as T;
+      } catch {
+        return {} as T;
+      }
+    }
+    if (typeof raw === "object") {
+      return raw as T;
+    }
+  }
+
+  if (typeof req.on === "function") {
     try {
-      return JSON.parse(raw) as T;
+      const chunks: Buffer[] = [];
+      for await (const chunk of req as AsyncIterable<Buffer | string>) {
+        chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+      }
+      const text = Buffer.concat(chunks).toString("utf8").trim();
+      if (text) {
+        return JSON.parse(text) as T;
+      }
     } catch {
       return {} as T;
     }
   }
-  if (Buffer.isBuffer(raw)) {
-    try {
-      return JSON.parse(raw.toString("utf8")) as T;
-    } catch {
-      return {} as T;
-    }
-  }
-  if (typeof raw === "object") {
-    return raw as T;
-  }
+
   return {} as T;
 }
 

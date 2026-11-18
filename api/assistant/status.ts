@@ -1,12 +1,13 @@
 import {
   isGeminiConfigured,
+  sendJson,
   type VercelReq,
   type VercelRes,
-} from "../_gemini";
+} from "../_gemini.js";
 
 export default function handler(_req: VercelReq, res: VercelRes) {
   const configured = isGeminiConfigured();
-  res.status(200).json({
+  sendJson(res, 200, {
     configured,
     provider: configured ? "gemini" : null,
   });

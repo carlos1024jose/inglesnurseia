@@ -31,18 +31,30 @@ export default function AssistantSection() {
     const checkStatus = async () => {
       try {
         const res = await fetch("/api/assistant/status");
-        if (!res.ok) {
-          throw new Error("No se pudo verificar el estado del asistente.");
+        const rawText = await res.text();
+        let data: { configured?: boolean; message?: string } = {};
+        try {
+          data = JSON.parse(rawText) as { configured?: boolean; message?: string };
+        } catch {
+          throw new Error(
+            `El endpoint /api/assistant/status devolvió HTTP ${res.status} sin formato JSON.`
+          );
         }
-        const data = (await res.json()) as { configured?: boolean };
+        if (!res.ok) {
+          throw new Error(
+            data.message || `Error HTTP ${res.status} al verificar el asistente.`
+          );
+        }
         if (active) {
           setIsConfigured(Boolean(data.configured));
         }
-      } catch {
+      } catch (err) {
         if (active) {
           setIsConfigured(false);
           setStatusError(
-            "No fue posible comprobar la disponibilidad del servicio de inteligencia artificial."
+            err instanceof Error
+              ? err.message
+              : "No fue posible comprobar la disponibilidad del servicio de inteligencia artificial."
           );
         }
       } finally {
@@ -100,10 +112,15 @@ export default function AssistantSection() {
         }),
       });
 
-      const data = (await response.json()) as {
-        reply?: string;
-        message?: string;
-      };
+      const rawText = await response.text();
+      let data: { reply?: string; message?: string } = {};
+      try {
+        data = JSON.parse(rawText) as { reply?: string; message?: string };
+      } catch {
+        throw new Error(
+          `El servidor respondió HTTP ${response.status} sin JSON válido.`
+        );
+      }
 
       if (!response.ok || !data.reply) {
         throw new Error(
