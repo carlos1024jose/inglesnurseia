@@ -1,0 +1,68 @@
+import { PronunciationPhrase } from "../types";
+
+export const PRONUNCIATION_PHRASES: PronunciationPhrase[] = [
+  {
+    id: "pr-1",
+    scenario: "Recepción y Triaje",
+    english: "Hello, my name is Sarah and I will be your nurse today.",
+    spanish: "Hola, mi nombre es Sarah y seré su enfermera hoy.",
+    pronunciation: "je-lóu, mai neim is Sára and ai uil bi iur ners tu-déi",
+    clinicalNote: "Presentarse con nombre y rol reduce la ansiedad inicial del paciente.",
+  },
+  {
+    id: "pr-2",
+    scenario: "Recepción y Triaje",
+    english: "What brings you to the emergency room today?",
+    spanish: "¿Qué motivo le trae hoy a la sala de urgencias?",
+    pronunciation: "uat brings iu tu di i-mér-yen-si rum tu-déi",
+    clinicalNote: "Pregunta abierta estándar para identificar el motivo principal de consulta.",
+  },
+  {
+    id: "pr-3",
+    scenario: "Signos Vitales",
+    english: "Please relax your arm while I wrap the blood pressure cuff.",
+    spanish: "Por favor relaje su brazo mientras coloco el brazalete de presión.",
+    pronunciation: "plis ri-láks iur arm uáil ai rap da blad pré-sher kaf",
+    clinicalNote: "Evita lecturas falsamente elevadas causadas por tensión muscular.",
+  },
+  {
+    id: "pr-4",
+    scenario: "Signos Vitales",
+    english: "Take a deep breath and hold it for a second.",
+    spanish: "Respire profundo y sostenga el aire un segundo.",
+    pronunciation: "teik a dip brez and jould it for a sé-kond",
+    clinicalNote: "Útil durante auscultación torácica o toma de radiografía portátil.",
+  },
+  {
+    id: "pr-5",
+    scenario: "Medicación y Procedimientos",
+    english: "Can you confirm your full name and date of birth?",
+    spanish: "¿Puede confirmar su nombre completo y fecha de nacimiento?",
+    pronunciation: "kan iu kon-férm iur ful neim and deit ov berz",
+    clinicalNote: "Doble identificador obligatorio antes de administrar medicamentos.",
+  },
+  {
+    id: "pr-6",
+    scenario: "Medicación y Procedimientos",
+    english: "This medication will help reduce your fever and pain.",
+    spanish: "Este medicamento ayudará a reducir su fiebre y dolor.",
+    pronunciation: "dis me-di-kéi-shon uil jelp ri-diús iur fí-ver and pein",
+    clinicalNote: "Informar el propósito terapéutico favorece la adherencia y confianza.",
+  },
+  {
+    id: "pr-7",
+    scenario: "Comunicación y Confort",
+    english: "On a scale from zero to ten, how would you rate your pain?",
+    spanish: "En una escala del cero al diez, ¿cómo calificaría su dolor?",
+    pronunciation: "on a skeil from zí-ro tu ten, jau uúd iu reit iur pein",
+    clinicalNote: "Permite cuantificar y reevaluar el dolor tras la intervención.",
+  },
+  {
+    id: "pr-8",
+    scenario: "Comunicación y Confort",
+    english: "Let me know immediately if you feel dizzy or short of breath.",
+    spanish: "Avíseme de inmediato si siente mareo o falta de aire.",
+    pronunciation: "let mi nou i-mí-diat-li if iu fil dí-zi or short ov brez",
+    clinicalNote: "Indicaciones claras de signos de alarma durante la deambulación.",
+  },
+];

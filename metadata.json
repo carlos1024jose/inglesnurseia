@@ -1,0 +1,8 @@
+{
+  "name": "Remix English Nurse AI",
+  "description": "Plataforma digital educativa de inglés técnico para estudiantes de Enfermería con traductor médico, vocabulario por categorías, pronunciación y asistente inteligente.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
