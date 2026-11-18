@@ -69,6 +69,100 @@ async function startServer() {
     });
   });
 
+  app.post("/api/translate", async (req, res) => {
+    const body = req.body as { text?: unknown; langPair?: unknown };
+    const text = typeof body?.text === "string" ? body.text.trim() : "";
+    const langPair = body?.langPair === "es|en" ? "es|en" : "en|es";
+
+    if (!text) {
+      res.status(400).json({
+        error: "EMPTY_TEXT",
+        message: "Por favor introduce un texto antes de traducir.",
+      });
+      return;
+    }
+
+    if (text.length > 2000) {
+      res.status(400).json({
+        error: "TEXT_TOO_LONG",
+        message: "El texto supera el límite de 2,000 caracteres.",
+      });
+      return;
+    }
+
+    const deeplKey = process.env.DEEPL_API_KEY?.trim();
+    const hasDeepL = Boolean(
+      deeplKey &&
+        deeplKey !== "MY_DEEPL_API_KEY" &&
+        deeplKey !== "YOUR_API_KEY" &&
+        deeplKey.length > 10
+    );
+
+    if (hasDeepL && deeplKey) {
+      const endpoint = deeplKey.endsWith(":fx")
+        ? "https://api-free.deepl.com/v2/translate"
+        : "https://api.deepl.com/v2/translate";
+      const [sourceLang, targetLang] =
+        langPair === "en|es" ? ["EN", "ES"] : ["ES", "EN"];
+
+      try {
+        const deeplRes = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            Authorization: `DeepL-Auth-Key ${deeplKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            text: [text],
+            source_lang: sourceLang,
+            target_lang: targetLang,
+          }),
+        });
+
+        if (deeplRes.ok) {
+          const data = (await deeplRes.json()) as {
+            translations?: Array<{ text?: string }>;
+          };
+          const translatedText = data?.translations?.[0]?.text?.trim();
+          if (translatedText) {
+            res.json({ translatedText, provider: "deepl" });
+            return;
+          }
+        } else {
+          console.error("DeepL API error status:", deeplRes.status);
+        }
+      } catch (err) {
+        console.error("DeepL API request failed:", err);
+      }
+    }
+
+    try {
+      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(
+        text
+      )}&langpair=${encodeURIComponent(langPair)}`;
+      const mmRes = await fetch(url);
+      if (!mmRes.ok) {
+        throw new Error(`HTTP ${mmRes.status}`);
+      }
+      const data = (await mmRes.json()) as {
+        responseStatus?: number;
+        responseData?: { translatedText?: string };
+        responseDetails?: string;
+      };
+      const translatedText = data?.responseData?.translatedText?.trim();
+      if (!translatedText || data?.responseStatus === 403) {
+        throw new Error(data?.responseDetails || "Respuesta inválida.");
+      }
+      res.json({ translatedText, provider: "mymemory" });
+    } catch {
+      res.status(502).json({
+        error: "TRANSLATION_FAILED",
+        message:
+          "No se pudo completar la traducción. Verifica tu conexión e inténtalo de nuevo.",
+      });
+    }
+  });
+
   app.post("/api/assistant", async (req, res) => {
     const ai = getGeminiClient();
     if (!ai) {

@@ -29,6 +29,7 @@ export default function TranslatorSection() {
   const [errorMessage, setErrorMessage] = useState("");
   const [copied, setCopied] = useState(false);
   const [speechNotice, setSpeechNotice] = useState("");
+  const [activeProvider, setActiveProvider] = useState<"deepl" | "mymemory" | null>(null);
 
   const isEnToEs = langPair === "en|es";
   const sourceLabel = isEnToEs ? "Inglés" : "Español";
@@ -60,31 +61,60 @@ export default function TranslatorSection() {
 
     setIsLoading(true);
     try {
-      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(
-        trimmed
-      )}&langpair=${encodeURIComponent(langPair)}`;
+      let result = "";
+      let provider: "deepl" | "mymemory" = "mymemory";
 
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+      try {
+        const apiRes = await fetch("/api/translate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: trimmed, langPair }),
+        });
+
+        if (apiRes.ok) {
+          const apiData = (await apiRes.json()) as {
+            translatedText?: string;
+            provider?: "deepl" | "mymemory";
+          };
+          if (apiData.translatedText?.trim()) {
+            result = apiData.translatedText.trim();
+            provider = apiData.provider === "deepl" ? "deepl" : "mymemory";
+          }
+        }
+      } catch {
+        // Fall back to browser-side MyMemory request below if /api/translate is unreachable
       }
 
-      const data = (await response.json()) as {
-        responseStatus?: number;
-        responseData?: { translatedText?: string };
-        responseDetails?: string;
-      };
+      if (!result) {
+        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(
+          trimmed
+        )}&langpair=${encodeURIComponent(langPair)}`;
 
-      const result = data?.responseData?.translatedText?.trim();
-      if (!result || data?.responseStatus === 403) {
-        throw new Error(data?.responseDetails || "Respuesta inválida del servicio.");
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = (await response.json()) as {
+          responseStatus?: number;
+          responseData?: { translatedText?: string };
+          responseDetails?: string;
+        };
+
+        const mmResult = data?.responseData?.translatedText?.trim();
+        if (!mmResult || data?.responseStatus === 403) {
+          throw new Error(data?.responseDetails || "Respuesta inválida del servicio.");
+        }
+        result = mmResult;
+        provider = "mymemory";
       }
 
       setSubmittedOriginal(trimmed);
       setTranslatedText(result);
+      setActiveProvider(provider);
     } catch {
       setErrorMessage(
-        "No se pudo completar la traducción por un error de conexión con MyMemory Translation API. Verifica tu red e inténtalo de nuevo."
+        "No se pudo completar la traducción por un error de conexión con el servicio de traducción. Verifica tu red e inténtalo de nuevo."
       );
     } finally {
       setIsLoading(false);
@@ -124,7 +154,10 @@ export default function TranslatorSection() {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <p className="text-xs font-medium text-sky-700">
-            Traductor clínico bidireccional · MyMemory Translation API
+            Traductor clínico bidireccional ·{" "}
+            {activeProvider === "deepl"
+              ? "DeepL API"
+              : "DeepL / MyMemory Translation API"}
           </p>
           <h1 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-1">
             Traductor Médico de Enfermería
